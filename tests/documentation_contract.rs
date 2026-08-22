@@ -108,20 +108,26 @@ fn homebrew_install_and_upgrade_are_copy_paste_ready() {
     let readme = include_str!("../README.md");
     let install = "brew install amaljithkuttamath/tap/jira-ops";
     let upgrade = "brew upgrade jira-ops";
+    let install_block = format!("```bash\n{install}\n```");
+    let upgrade_block = format!("```bash\n{upgrade}\n```");
 
     assert!(readme.contains(install), "README is missing {install}");
     assert!(readme.contains(upgrade), "README is missing {upgrade}");
     assert!(
-        readme.contains(&format!("```bash\n{install}\n```")),
+        readme.contains(&install_block),
         "Homebrew install must be a standalone Bash command"
     );
     assert!(
-        readme.contains(&format!("```bash\n{upgrade}\n```")),
+        readme.contains(&upgrade_block),
         "Homebrew upgrade must be a standalone Bash command"
     );
 
-    let install_position = readme.find(install).expect("Homebrew install position");
-    let upgrade_position = readme.find(upgrade).expect("Homebrew upgrade position");
+    let install_position = readme
+        .find(&install_block)
+        .expect("Homebrew install block position");
+    let upgrade_position = readme
+        .find(&upgrade_block)
+        .expect("Homebrew upgrade block position");
     let release_position = readme
         .find("[GitHub Releases]")
         .expect("GitHub Releases install position");
@@ -134,22 +140,16 @@ fn homebrew_install_and_upgrade_are_copy_paste_ready() {
 #[test]
 fn release_guide_requires_verified_homebrew_publication() {
     let guide = include_str!("../docs/releasing.md");
-    let github_release = guide
-        .find("publish the GitHub release")
-        .expect("GitHub release publication step");
-    let tap_update = guide
-        .find("updater to verify the four Unix archives")
-        .expect("Homebrew archive verification step");
-    let install_checks = guide
-        .find("macOS and Linux installation checks")
-        .expect("Homebrew installation checks");
+    let publish = numbered_step(guide, 4);
+    let homebrew = numbered_step(guide, 5);
+    let verify = numbered_step(guide, 6);
 
-    assert!(
-        github_release < tap_update && tap_update < install_checks,
-        "the release guide must publish, verify the tap update, then validate installs"
-    );
-    assert!(guide.contains("runs hourly"));
-    assert!(guide.contains("exact release tag"));
+    assert!(publish.contains("publish the GitHub release"));
+    assert!(homebrew.contains("updater to verify the four Unix archives"));
+    assert!(homebrew.contains("macOS and Linux installation checks"));
+    assert!(homebrew.contains("runs hourly"));
+    assert!(homebrew.contains("exact release tag"));
+    assert!(verify.contains("verify its checksum, provenance"));
 }
 
 #[test]
@@ -276,4 +276,30 @@ fn fenced_code_blocks(document: &str) -> Vec<String> {
         }
     }
     blocks
+}
+
+fn numbered_step(document: &str, number: usize) -> String {
+    let prefix = format!("{number}. ");
+    let mut step = String::new();
+    let mut collecting = false;
+
+    for line in document.lines() {
+        if line.starts_with(&prefix) {
+            collecting = true;
+        } else if collecting
+            && line
+                .split_once(". ")
+                .is_some_and(|(candidate, _)| candidate.parse::<usize>().is_ok())
+        {
+            break;
+        }
+
+        if collecting {
+            step.push_str(line);
+            step.push('\n');
+        }
+    }
+
+    assert!(!step.is_empty(), "missing release step {number}");
+    step
 }
