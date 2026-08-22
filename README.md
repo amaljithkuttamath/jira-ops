@@ -1,44 +1,24 @@
-# Ops CLI for Jira
+# jira-ops
 
-Ops CLI for Jira is a predictable command-line client for Jira Cloud, installed
-as `jira-ops`. It emits one machine-readable document per invocation, exposes
-its own command schemas, and plans every Jira mutation before it writes.
+`jira-ops` is a predictable, agent-friendly CLI for Jira Cloud. It returns
+structured data, exposes machine-readable command schemas, and plans every
+mutation before it writes.
 
-> `jira-ops` is an independent, third-party project. It is not affiliated with,
-> endorsed by, or sponsored by Atlassian. Jira and Atlassian are trademarks of
-> Atlassian Pty Ltd.
+- Compact JSON by default, with optional token-efficient TOON output.
+- Non-interactive commands with stable IDs, cursors, and exit classes.
+- Metadata-driven issue creation and transitions for different Jira sites.
+- Dry-run writes by default; applying a mutation is always explicit.
 
-This release is a public beta. It supports Jira Cloud and API-token
-authentication. OAuth and self-managed Jira are not supported.
+> Public beta: Jira Cloud and API-token authentication are supported. OAuth
+> and self-managed Jira are not yet supported.
 
 ## Install
 
-Download the archive for your platform from
-[GitHub Releases](https://github.com/amaljithkuttamath/jira-ops/releases). Each
-archive has a matching `.sha256` file.
+Download the archive for macOS, Linux, or Windows from
+[GitHub Releases](https://github.com/amaljithkuttamath/jira-ops/releases),
+extract it, and place `jira-ops` on your `PATH`.
 
-Verify an archive on Linux:
-
-```bash
-sha256sum -c jira-ops-v0.2.0-beta.2-x86_64-unknown-linux-gnu.tar.gz.sha256
-```
-
-Verify an archive on macOS:
-
-```bash
-shasum -a 256 -c jira-ops-v0.2.0-beta.2-aarch64-apple-darwin.tar.gz.sha256
-```
-
-Checksums detect a corrupted download. Also verify the GitHub artifact
-provenance attestation, which binds the downloaded archive to this repository's
-release workflow:
-
-```bash
-gh attestation verify jira-ops-v0.2.0-beta.2-x86_64-unknown-linux-gnu.tar.gz \
-  --repo amaljithkuttamath/jira-ops
-```
-
-You can also build from source with Rust 1.90 or newer:
+Or install from source with Rust 1.90 or newer:
 
 ```bash
 cargo install --locked --git https://github.com/amaljithkuttamath/jira-ops --tag v0.2.0-beta.2
@@ -50,133 +30,134 @@ Confirm the installation:
 jira-ops version
 ```
 
-## First use
+Release archives include SHA-256 checksums and GitHub build-provenance
+attestations. See the [security policy](SECURITY.md#release-integrity) for
+verification commands.
 
-Inspect the complete command contract without credentials:
+## Authenticate
 
-```bash
-jira-ops schema --all --pretty
-```
-
-List the built-in project templates without contacting Jira:
-
-```bash
-jira-ops project templates --type software --pretty
-```
-
-Configure an API token using the system credential store:
+Create an [Atlassian API token](https://id.atlassian.com/manage-profile/security/api-tokens),
+then save it in your operating system's credential store:
 
 ```bash
 read -r -s jira_ops_token
-printf '%s\n' "$jira_ops_token" | jira-ops auth login --site https://your-site.atlassian.net --email you@example.com --token-stdin
+printf '%s\n' "$jira_ops_token" | jira-ops auth login \
+  --site https://your-site.atlassian.net \
+  --email you@example.com \
+  --token-stdin
 unset jira_ops_token
 ```
 
-Verify the active identity:
+Verify the active account:
 
 ```bash
 jira-ops me --pretty
 ```
 
-See [authentication](docs/auth.md) for headless environment variables.
+For CI and other headless environments, see
+[authentication](docs/auth.md#headless-environment).
 
-## Safe writes
+## Use
 
-Mutation input is one JSON object on standard input. The exact `--input -`
-marker is required. Without `--apply`, a mutation returns a plan and does not
-send the write request.
-
-This project creation example is completely local:
+List visible projects:
 
 ```bash
-printf '%s\n' '{"key":"DEMO","name":"Demo project","project_type_key":"software","project_template_key":"com.pyxis.greenhopper.jira:gh-simplified-kanban-classic","lead_account_id":"replace-with-account-id"}' | jira-ops project create --input - --pretty
+jira-ops project list --limit 20 --pretty
 ```
 
-Inspect the plan. To write, add `--apply` to the same command. Set
-`JIRA_READ_ONLY=1` in automation that must never apply a mutation.
-
-Applying project creation requires the account to have Jira's global
-**Administer Jira** permission. A scoped token needs either the classic
-`manage:jira-configuration` scope or both granular scopes
-`write:project:jira` and `read:project:jira`.
-
-## Output contract
-
-- Success is written to standard output as `{"data": ...}` and exits `0`.
-- Failure is written to standard error as `{"error": ...}` and exits nonzero.
-- JSON is compact by default. Add `--pretty` for indented JSON.
-- Add `-o toon` or `--output toon` for token-oriented TOON output.
-- `--pretty` and TOON are mutually exclusive.
-- `--timeout-ms` accepts `1000` through `120000`; the default is `30000`.
-- Paginated commands return `meta.next_cursor`. Cursors are opaque and bound to
-  the exact command and query.
-
-The CLI's own schema is the normative reference:
+Search issues with JQL:
 
 ```bash
-jira-ops schema issue create --pretty
+jira-ops issue search \
+  --jql 'project = DEMO ORDER BY updated DESC' \
+  --fields summary,status,assignee,updated \
+  --limit 20 \
+  --pretty
 ```
 
-The interface is deliberately non-interactive: there is no TUI, prompt, or
-browser launch. Interactive selection is replaced by discovery commands plus
-stable IDs; `url` returns a URL instead of opening it. JSON and
-TOON replace CSV/raw output so agents receive one typed document on one stream.
+Inspect one issue:
 
-## Commands
+```bash
+jira-ops issue get DEMO-1 --fields summary,status,description --pretty
+```
 
-| Command | Purpose |
-| --- | --- |
-| `version` | Show CLI and contract versions |
-| `schema [COMMAND...]` | Discover all commands or one command contract |
-| `config get`, `config set`, `config unset` | Read or update saved non-secret defaults |
-| `url issue`, `url project` | Return canonical browse URLs without opening a browser |
-| `completion` | Generate shell completion text |
-| `man` | Generate man pages into a validated empty directory |
-| `server info` | Read stable Jira Cloud server metadata |
-| `user search` | Search users with privacy-trimmed output |
-| `board list` | List Jira Software boards |
-| `release list` | List project releases |
-| `auth login`, `auth status`, `auth logout` | Manage API-token authentication |
-| `me` | Show the authenticated Jira user |
-| `project list`, `project get` | Read projects |
-| `project templates`, `project create` | Discover local templates and plan or create a project |
-| `field list` | List or search fields |
-| `issue get`, `issue search` | Read issues |
-| `issue create-meta` | Discover issue types and field metadata |
-| `issue create`, `issue clone`, `issue update`, `issue delete` | Plan, apply, or explicitly confirm issue changes |
-| `issue assign` | Plan or apply assignment or unassignment |
-| `issue link types`, `issue link get`, `issue link add`, `issue link remove` | Discover, inspect, add, or explicitly remove issue links |
-| `issue remote-link list`, `issue remote-link get`, `issue remote-link add`, `issue remote-link remove` | Read or safely change HTTPS remote links |
-| `issue worklog list`, `issue worklog add`, `issue worklog update`, `issue worklog delete` | Read or safely change worklogs and estimates |
-| `epic list`, `epic create`, `epic add`, `epic remove` | Discover, create, or safely change epic membership |
-| `sprint list`, `sprint issues`, `sprint add`, `sprint close` | Discover sprints, move issues, or safely close an active sprint |
-| `issue watcher list`, `issue watcher add`, `issue watcher remove` | Read or change watchers |
-| `issue comments`, `issue comment` | List or add comments |
-| `issue transitions`, `issue transition` | Discover or apply workflow transitions |
+### Plan and apply a write
+
+First discover the site's issue types and field requirements:
+
+```bash
+jira-ops issue create-meta --project DEMO --limit 100 --pretty
+jira-ops issue create-meta --project DEMO --issue-type 10001 --limit 100 --pretty
+```
+
+Use the returned issue-type ID to plan an issue creation:
+
+```bash
+printf '%s\n' '{"project_key":"DEMO","issue_type_id":"10001","fields":{"summary":"Prepare release","description":"Verify the release artifacts"}}' | jira-ops issue create --input - --pretty
+```
+
+The command validates the input and returns a plan without writing to Jira.
+Review that plan, then rerun the same invocation with `--apply` when the write
+is intended. Set `JIRA_READ_ONLY=1` in environments where writes must be
+impossible.
+
+Other common workflows:
+
+```bash
+# Discover available workflow transitions.
+jira-ops issue transitions DEMO-1 --pretty
+
+# Plan a comment.
+printf '%s\n' '{"body":"Release verification completed."}' | jira-ops issue comment DEMO-1 --input - --pretty
+
+# Plan an issue update.
+printf '%s\n' '{"set":{"summary":"Updated release title"}}' | jira-ops issue update DEMO-1 --input - --pretty
+```
+
+See [recipes](docs/recipes.md) for assignment, links, watchers, worklogs, epics,
+sprints, comments, transitions, pagination, and project creation.
+
+## Use from an agent
+
+Agents should discover the contract instead of scraping help text or guessing
+Jira field names:
+
+```bash
+jira-ops schema --all
+jira-ops schema issue create
+```
+
+Each invocation produces at most one document:
+
+- Exit `0`: a success document on standard output.
+- Nonzero exit: an error document on standard error.
+- JSON is compact by default; add `--pretty` for humans.
+- Add `-o toon` when the consumer supports TOON and token cost matters.
+- Paginated results return an opaque `meta.next_cursor`.
+
+The scoped schema describes arguments, input, output, effects, idempotency,
+pagination, and error-to-exit mappings. See the
+[machine-use guide](docs/agent-guide.md) for retries, mutation outcomes, cursor
+handling, and the complete agent loop.
 
 ## Documentation
 
-- [Authentication](docs/auth.md): keyring and headless setup
-- [Recipes](docs/recipes.md): projects, issues, comments, transitions, and pagination
-- [Machine-use guide](docs/agent-guide.md): schemas, retries, cursors, and compact output
-- [Security policy](SECURITY.md): supported versions and private reporting
-- [Changelog](CHANGELOG.md): release contents and beta limits
+- [Recipes](docs/recipes.md): practical Jira workflows
+- [Command index](docs/commands.md): complete command surface
+- [Authentication](docs/auth.md): credential store and headless setup
+- [Machine-use guide](docs/agent-guide.md): schemas and automation contracts
+- [Security](SECURITY.md): reporting, token hygiene, and release verification
+- [Changelog](CHANGELOG.md): release notes and beta limits
 
-## Release process
+Run `jira-ops --help` for human-readable command help or
+`jira-ops schema --all --pretty` for the complete machine-readable command
+surface.
 
-The tag-triggered GitHub Actions workflow is the authoritative release path.
-A maintainer prepares a reviewed, clean commit on `main`, confirms that the
-`v<version>` tag matches `Cargo.toml`, then creates and pushes that tag. The
-workflow checks out that exact tag commit and requires formatting, linting,
-tests, a release build, dependency-policy checks, line coverage of at least
-80%, and a full-history secret scan before it builds, attests, scans, and
-publishes archives. Do not publish with `gh release create` or `cargo release`.
+## Project scope
 
-`release.toml` deliberately limits cargo-release preparation to `main` and
-disables its push and publish operations; GitHub Actions performs publishing
-only after the tag gate succeeds.
-
-## License
+`jira-ops` is an independent, third-party project. It is not affiliated with,
+endorsed by, or sponsored by Atlassian. Jira and Atlassian are trademarks of
+Atlassian Pty Ltd.
 
 Licensed under either [MIT](LICENSE-MIT) or
 [Apache License 2.0](LICENSE-APACHE), at your option.
