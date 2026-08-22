@@ -148,7 +148,7 @@ fn package_contains_binary_docs_and_matching_checksum() {
     let output = Command::new("bash")
         .arg(package_script())
         .arg(&binary)
-        .arg("0.2.0-beta.1")
+        .arg("0.2.0-beta.2")
         .arg("aarch64-apple-darwin")
         .arg(&source)
         .arg(&dist)
@@ -160,7 +160,7 @@ fn package_contains_binary_docs_and_matching_checksum() {
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let stem = "jira-ops-v0.2.0-beta.1-aarch64-apple-darwin";
+    let stem = "jira-ops-v0.2.0-beta.2-aarch64-apple-darwin";
     let archive = dist.join(format!("{stem}.tar.gz"));
     let checksum = dist.join(format!("{stem}.tar.gz.sha256"));
     assert!(archive.is_file(), "release archive was not created");
@@ -204,7 +204,7 @@ fn package_rejects_missing_release_document_without_partial_artifacts() {
     let output = Command::new("bash")
         .arg(package_script())
         .arg(&binary)
-        .arg("0.2.0-beta.1")
+        .arg("0.2.0-beta.2")
         .arg("aarch64-apple-darwin")
         .arg(&source)
         .arg(&dist)

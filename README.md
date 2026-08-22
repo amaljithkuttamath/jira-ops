@@ -20,13 +20,13 @@ archive has a matching `.sha256` file.
 Verify an archive on Linux:
 
 ```bash
-sha256sum -c jira-ops-v0.2.0-beta.1-x86_64-unknown-linux-gnu.tar.gz.sha256
+sha256sum -c jira-ops-v0.2.0-beta.2-x86_64-unknown-linux-gnu.tar.gz.sha256
 ```
 
 Verify an archive on macOS:
 
 ```bash
-shasum -a 256 -c jira-ops-v0.2.0-beta.1-aarch64-apple-darwin.tar.gz.sha256
+shasum -a 256 -c jira-ops-v0.2.0-beta.2-aarch64-apple-darwin.tar.gz.sha256
 ```
 
 Checksums detect a corrupted download. Also verify the GitHub artifact
@@ -34,14 +34,14 @@ provenance attestation, which binds the downloaded archive to this repository's
 release workflow:
 
 ```bash
-gh attestation verify jira-ops-v0.2.0-beta.1-x86_64-unknown-linux-gnu.tar.gz \
+gh attestation verify jira-ops-v0.2.0-beta.2-x86_64-unknown-linux-gnu.tar.gz \
   --repo amaljithkuttamath/jira-ops
 ```
 
 You can also build from source with Rust 1.90 or newer:
 
 ```bash
-cargo install --locked --git https://github.com/amaljithkuttamath/jira-ops --tag v0.2.0-beta.1
+cargo install --locked --git https://github.com/amaljithkuttamath/jira-ops --tag v0.2.0-beta.2
 ```
 
 Confirm the installation:

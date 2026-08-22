@@ -4,7 +4,8 @@
 
 | Version | Supported |
 | --- | --- |
-| `0.2.0-beta.1` | Yes |
+| `0.2.0-beta.2` | Yes |
+| `0.2.0-beta.1` | No |
 | `0.1.0-beta.1` | No |
 | Older builds | No |
 
@@ -61,13 +62,23 @@ before installing a binary, then verify the GitHub artifact provenance
 attestation for the archive:
 
 ```bash
-gh attestation verify jira-ops-v0.2.0-beta.1-x86_64-unknown-linux-gnu.tar.gz \
+gh attestation verify jira-ops-v0.2.0-beta.2-x86_64-unknown-linux-gnu.tar.gz \
   --repo amaljithkuttamath/jira-ops
 ```
 
 Checksums detect corruption; the attestation verifies that GitHub built the
 artifact from this repository's release workflow. GitHub Actions used by that
 workflow are pinned to immutable commit hashes.
+
+## Automated security checks
+
+- `cargo deny check` blocks known RustSec advisories, yanked crates,
+  disallowed licenses, and unapproved dependency sources in CI and releases.
+- Dependabot monitors `Cargo.lock` and opens security updates for vulnerable
+  Rust dependencies.
+- CodeQL scans Rust source and GitHub Actions workflows on `main`, pull
+  requests, and a weekly schedule.
+- Secret scanning and push protection reject supported credential patterns.
 
 `jira-ops` is an independent, third-party project. It is not affiliated with,
 endorsed by, or sponsored by Atlassian.

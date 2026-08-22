@@ -4,6 +4,21 @@ All notable changes to `jira-ops` are recorded here.
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2026-08-22
+
+### Fixed
+
+- Release publication now identifies the repository explicitly when the final
+  job runs without a source checkout.
+
+### Security
+
+- Added weekly Dependabot updates for Cargo and GitHub Actions.
+- Added CodeQL scanning for Rust and workflow code on pushes, pull requests,
+  and a weekly schedule.
+- Enabled GitHub dependency alerts, automatic security updates, secret
+  scanning, and push protection for the public repository.
+
 ## [0.2.0-beta.1] - 2026-08-20
 
 ### Added
@@ -58,6 +73,7 @@ All notable changes to `jira-ops` are recorded here.
 - Release interfaces may change before `1.0.0`; use `contract_version` to detect
   machine-contract changes.
 
-[Unreleased]: https://github.com/amaljithkuttamath/jira-ops/compare/v0.2.0-beta.1...HEAD
+[Unreleased]: https://github.com/amaljithkuttamath/jira-ops/compare/v0.2.0-beta.2...HEAD
+[0.2.0-beta.2]: https://github.com/amaljithkuttamath/jira-ops/releases/tag/v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/amaljithkuttamath/jira-ops/releases/tag/v0.2.0-beta.1
 [0.1.0-beta.1]: https://github.com/amaljithkuttamath/jira-ops/releases/tag/v0.1.0-beta.1
