@@ -111,15 +111,45 @@ fn homebrew_install_and_upgrade_are_copy_paste_ready() {
 
     assert!(readme.contains(install), "README is missing {install}");
     assert!(readme.contains(upgrade), "README is missing {upgrade}");
+    assert!(
+        readme.contains(&format!("```bash\n{install}\n```")),
+        "Homebrew install must be a standalone Bash command"
+    );
+    assert!(
+        readme.contains(&format!("```bash\n{upgrade}\n```")),
+        "Homebrew upgrade must be a standalone Bash command"
+    );
 
     let install_position = readme.find(install).expect("Homebrew install position");
+    let upgrade_position = readme.find(upgrade).expect("Homebrew upgrade position");
     let release_position = readme
         .find("[GitHub Releases]")
         .expect("GitHub Releases install position");
     assert!(
-        install_position < release_position,
-        "Homebrew should be the first actionable install path"
+        install_position < upgrade_position && upgrade_position < release_position,
+        "Homebrew install and upgrade should precede alternative install paths"
     );
+}
+
+#[test]
+fn release_guide_requires_verified_homebrew_publication() {
+    let guide = include_str!("../docs/releasing.md");
+    let github_release = guide
+        .find("publish the GitHub release")
+        .expect("GitHub release publication step");
+    let tap_update = guide
+        .find("updater to verify the four Unix archives")
+        .expect("Homebrew archive verification step");
+    let install_checks = guide
+        .find("macOS and Linux installation checks")
+        .expect("Homebrew installation checks");
+
+    assert!(
+        github_release < tap_update && tap_update < install_checks,
+        "the release guide must publish, verify the tap update, then validate installs"
+    );
+    assert!(guide.contains("runs hourly"));
+    assert!(guide.contains("exact release tag"));
 }
 
 #[test]
