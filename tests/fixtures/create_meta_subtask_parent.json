@@ -1,0 +1,1 @@
+{"startAt":0,"total":2,"fields":[{"fieldId":"summary","name":"Summary","required":true,"operations":["set"],"schema":{"type":"string","system":"summary"},"allowedValues":[]},{"fieldId":"parent","name":"Parent","required":true,"operations":["set"],"schema":{"type":"issuelink","system":"parent"}}]}

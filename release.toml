@@ -1,0 +1,12 @@
+# cargo-release may prepare a version commit and tag only on reviewed main.
+# The tag-triggered GitHub Actions workflow is the sole publisher.
+allow-branch = ["main"]
+consolidate-commits = true
+pre-release-commit-message = "chore: release {{version}}"
+tag-name = "v{{version}}"
+tag-message = "jira-ops {{version}}"
+# Keep publishing and pushing under the gated workflow's control.
+publish = false
+push = false
+sign-commit = false
+sign-tag = false

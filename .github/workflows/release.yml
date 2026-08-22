@@ -1,0 +1,257 @@
+name: Release
+
+"on":
+  push:
+    tags:
+      - "v[0-9]*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Match tag to package version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "invalid release tag: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          version=${GITHUB_REF_NAME#v}
+          manifest_version=$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if [[ "$version" != "$manifest_version" ]]; then
+            echo "tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest_version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  quality:
+    name: Validate tagged source
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the tagged commit and its history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Test
+        run: cargo test --locked --all-targets --all-features
+
+      - name: Build release binary
+        run: cargo build --locked --release
+
+      - name: Check dependency policy
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check
+
+      - name: Install pinned coverage tool
+        run: cargo install cargo-llvm-cov --version 0.8.7 --locked
+
+      - name: Enforce line coverage
+        run: cargo llvm-cov --locked --all-features --workspace --fail-under-lines 80
+
+      - name: Scan full source history
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: [validate, quality]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            format: tar
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            format: tar
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            format: tar
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            format: tar
+          - runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            format: zip
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust target
+        shell: bash
+        run: rustup target add "${{ matrix.target }}"
+
+      - name: Build
+        shell: bash
+        run: cargo build --locked --release --target "${{ matrix.target }}"
+
+      - name: Package Unix archive
+        if: matrix.format == 'tar'
+        shell: bash
+        run: |
+          scripts/package-release.sh \
+            "target/${{ matrix.target }}/release/jira-ops" \
+            "${{ needs.validate.outputs.version }}" \
+            "${{ matrix.target }}" \
+            "$GITHUB_WORKSPACE" \
+            "$GITHUB_WORKSPACE/dist"
+
+      - name: Package Windows archive
+        if: matrix.format == 'zip'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "${{ needs.validate.outputs.version }}"
+          $target = "${{ matrix.target }}"
+          $stem = "jira-ops-v$version-$target"
+          $stageRoot = Join-Path $env:RUNNER_TEMP "jira-ops-package"
+          $stage = Join-Path $stageRoot $stem
+          $dist = Join-Path $env:GITHUB_WORKSPACE "dist"
+          New-Item -ItemType Directory -Force -Path $stage, $dist | Out-Null
+          Copy-Item "target/$target/release/jira-ops.exe" (Join-Path $stage "jira-ops.exe")
+          Copy-Item "README.md", "LICENSE-MIT", "LICENSE-APACHE" $stage
+          $archiveName = "$stem.zip"
+          $archive = Join-Path $dist $archiveName
+          Compress-Archive -Path $stage -DestinationPath $archive
+          $digest = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          "$digest  $archiveName`n" | Set-Content -NoNewline -Encoding ascii "$archive.sha256"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jira-ops-${{ matrix.target }}
+          path: |
+            dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Attest release artifact provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
+        with:
+          subject-path: dist/*
+
+  publish:
+    name: Publish GitHub release
+    needs: [quality, build, archive-scan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: jira-ops-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            "$GITHUB_REF_NAME"
+            dist/*
+            --verify-tag
+            --title "jira-ops $GITHUB_REF_NAME"
+            --generate-notes
+          )
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${args[@]}"
+
+  archive-scan:
+    name: Scan packaged archives
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: jira-ops-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify checksums and unpack archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir scan
+          for checksum in dist/*.sha256; do
+            (cd dist && sha256sum --check "$(basename "$checksum")")
+          done
+          for archive in dist/*.tar.gz; do
+            tar -xzf "$archive" -C scan
+          done
+          for archive in dist/*.zip; do
+            unzip -q "$archive" -d scan
+          done
+
+      - name: Download verified Gitleaks CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          gitleaks_archive="$RUNNER_TEMP/gitleaks_8.28.0_linux_x64.tar.gz"
+          gitleaks_dir="$RUNNER_TEMP/gitleaks-8.28.0"
+          curl --fail --location --silent --show-error \
+            --output "$gitleaks_archive" \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          echo "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  $gitleaks_archive" \
+            | sha256sum --check --status
+          mkdir -p "$gitleaks_dir"
+          tar -xzf "$gitleaks_archive" -C "$gitleaks_dir"
+          echo "gitleaks_dir=$gitleaks_dir" >> "$GITHUB_ENV"
+
+      - name: Scan unpacked release contents
+        shell: bash
+        run: '"$gitleaks_dir/gitleaks" dir scan scan --no-banner --redact'

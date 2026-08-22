@@ -1,0 +1,1 @@
+{"transitions":[{"id":"31","name":"Done","to":{"id":"10002","name":"Done"},"fields":{"resolution":{"name":"Resolution","required":true,"operations":["set"],"schema":{"type":"string"},"allowedValues":[{"id":"1","name":"Done"}]}}}]}

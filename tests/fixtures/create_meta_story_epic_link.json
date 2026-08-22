@@ -1,0 +1,1 @@
+{"startAt":0,"total":2,"fields":[{"fieldId":"summary","name":"Summary","required":true,"operations":["set"],"schema":{"type":"string","system":"summary"},"allowedValues":[]},{"fieldId":"customfield_78431","name":"Localized relationship label","required":false,"operations":["set"],"schema":{"type":"any","custom":"com.pyxis.greenhopper.jira:gh-epic-link"}}]}

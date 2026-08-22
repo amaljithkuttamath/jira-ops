@@ -1,0 +1,43 @@
+[package]
+name = "jira-ops"
+version = "0.2.0-beta.1"
+edition = "2024"
+rust-version = "1.90"
+description = "A predictable, agent-friendly command-line interface for Jira Cloud"
+readme = "README.md"
+repository = "https://github.com/amaljithkuttamath/jira-ops"
+license = "MIT OR Apache-2.0"
+keywords = ["automation", "cli", "jira"]
+categories = ["command-line-utilities", "development-tools"]
+publish = false
+
+[dependencies]
+base64 = "0.22"
+clap = { version = "4.6", features = ["derive"] }
+clap_complete = "4.6"
+clap_mangen = "0.2"
+directories = "6"
+keyring = { version = "4.1", features = ["v1"] }
+pulldown-cmark = "0.13"
+schemars = { version = "1.2", features = ["derive"] }
+secrecy = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+toon-format = { version = "=0.5.0", default-features = false }
+ureq = { version = "3.3", features = ["json", "platform-verifier"] }
+url = { version = "2.5", features = ["serde"] }
+uuid = { version = "1", features = ["serde", "v4"] }
+zeroize = "1"
+
+[dev-dependencies]
+assert_cmd = "2"
+mockito = "1"
+predicates = "3"
+proptest = "1"
+
+[lints.rust]
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(jira_ops_hierarchy_test)"] }

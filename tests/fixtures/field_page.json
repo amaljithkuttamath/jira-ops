@@ -1,0 +1,1 @@
+{"maxResults":20,"startAt":0,"total":1,"isLast":true,"values":[{"id":"customfield_10042","name":"Story points","description":"Story point estimate","typeDisplayName":"Number field","schema":{"type":"number","items":null,"custom":"com.atlassian.jira.plugin.system.customfieldtypes:float","customId":10042}}]}

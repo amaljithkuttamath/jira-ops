@@ -1,0 +1,21 @@
+{
+  "id": "10042",
+  "key": "ACCL-1",
+  "self": "https://example.atlassian.net/rest/api/3/issue/10042",
+  "fields": {
+    "summary": "Create endpoint contract test",
+    "status": {"id": "10000", "name": "To Do", "iconUrl": "ignored"},
+    "assignee": {"accountId": "abc123", "displayName": "Agent User", "avatarUrls": {"48x48": "ignored"}},
+    "updated": "2026-08-18T22:00:00.000+0000",
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [
+        {"type": "paragraph", "content": [{"type": "text", "text": "First line"}]},
+        {"type": "bulletList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "nested"}]}]}]}
+      ]
+    },
+    "customfield_10042": 8,
+    "ignored": "must not escape"
+  }
+}

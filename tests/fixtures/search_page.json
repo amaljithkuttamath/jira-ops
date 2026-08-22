@@ -1,0 +1,18 @@
+{
+  "isLast": false,
+  "nextPageToken": "jira-token-2",
+  "issues": [
+    {
+      "id": "10042",
+      "key": "ACCL-1",
+      "fields": {
+        "summary": "Create endpoint contract test",
+        "status": {"id": "10000", "name": "To Do"},
+        "assignee": null,
+        "updated": "2026-08-18T22:00:00.000+0000"
+      }
+    }
+  ],
+  "warningMessages": ["Recent updates may not be visible yet."],
+  "names": {"ignored": "must not escape"}
+}
