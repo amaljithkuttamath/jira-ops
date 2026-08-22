@@ -195,6 +195,7 @@ jobs:
             "$GITHUB_REF_NAME"
             dist/*
             --verify-tag
+            --repo "$GITHUB_REPOSITORY"
             --title "jira-ops $GITHUB_REF_NAME"
             --generate-notes
           )

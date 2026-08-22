@@ -76,6 +76,10 @@ fn release_build_and_publish_are_gated_by_quality_on_the_tag_commit() {
         publish.contains("needs: [quality, build, archive-scan]"),
         "publish must wait for quality, build, and archive scan"
     );
+    assert!(
+        publish.contains("--repo \"$GITHUB_REPOSITORY\""),
+        "publish must identify the repository without relying on a checkout"
+    );
 }
 
 #[test]
