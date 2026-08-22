@@ -5,14 +5,16 @@ use clap::CommandFactory;
 use jira_ops::cli::Cli;
 use serde_json::Value;
 
-const DOCUMENTS: [(&str, &str); 7] = [
+const DOCUMENTS: [(&str, &str); 9] = [
     ("README.md", include_str!("../README.md")),
+    ("docs/commands.md", include_str!("../docs/commands.md")),
     (
         "docs/agent-guide.md",
         include_str!("../docs/agent-guide.md"),
     ),
     ("docs/auth.md", include_str!("../docs/auth.md")),
     ("docs/recipes.md", include_str!("../docs/recipes.md")),
+    ("docs/releasing.md", include_str!("../docs/releasing.md")),
     ("SECURITY.md", include_str!("../SECURITY.md")),
     ("CHANGELOG.md", include_str!("../CHANGELOG.md")),
     ("LICENSE-MIT", include_str!("../LICENSE-MIT")),
@@ -80,6 +82,7 @@ fn every_current_command_is_discoverable_from_public_docs() {
     let schema = schema_all();
     let public_docs = [
         include_str!("../README.md"),
+        include_str!("../docs/commands.md"),
         include_str!("../docs/agent-guide.md"),
         include_str!("../docs/auth.md"),
         include_str!("../docs/recipes.md"),
