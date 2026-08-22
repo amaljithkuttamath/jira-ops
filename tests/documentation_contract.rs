@@ -104,6 +104,25 @@ fn every_current_command_is_discoverable_from_public_docs() {
 }
 
 #[test]
+fn homebrew_install_and_upgrade_are_copy_paste_ready() {
+    let readme = include_str!("../README.md");
+    let install = "brew install amaljithkuttamath/tap/jira-ops";
+    let upgrade = "brew upgrade jira-ops";
+
+    assert!(readme.contains(install), "README is missing {install}");
+    assert!(readme.contains(upgrade), "README is missing {upgrade}");
+
+    let install_position = readme.find(install).expect("Homebrew install position");
+    let release_position = readme
+        .find("[GitHub Releases]")
+        .expect("GitHub Releases install position");
+    assert!(
+        install_position < release_position,
+        "Homebrew should be the first actionable install path"
+    );
+}
+
+#[test]
 fn documentation_code_blocks_contain_no_literal_credentials() {
     for (path, document) in DOCUMENTS {
         for (line_number, line) in fenced_code_lines(document) {

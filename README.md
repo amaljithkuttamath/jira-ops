@@ -14,7 +14,19 @@ mutation before it writes.
 
 ## Install
 
-Download the archive for macOS, Linux, or Windows from
+On macOS or Linux, install with Homebrew:
+
+```bash
+brew install amaljithkuttamath/tap/jira-ops
+```
+
+Upgrade after a new release:
+
+```bash
+brew upgrade jira-ops
+```
+
+Alternatively, download the archive for macOS, Linux, or Windows from
 [GitHub Releases](https://github.com/amaljithkuttamath/jira-ops/releases),
 extract it, and place `jira-ops` on your `PATH`.
 
