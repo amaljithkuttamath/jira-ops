@@ -20,6 +20,16 @@ fn release_workflow() -> String {
     .expect("read release workflow")
 }
 
+fn ci_workflow() -> String {
+    fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(".github")
+            .join("workflows")
+            .join("ci.yml"),
+    )
+    .expect("read CI workflow")
+}
+
 fn job_block<'a>(workflow: &'a str, job: &str, next_job: Option<&str>) -> &'a str {
     let start = format!("  {job}:\n");
     let workflow = workflow
@@ -79,6 +89,17 @@ fn release_build_and_publish_are_gated_by_quality_on_the_tag_commit() {
     assert!(
         publish.contains("--repo \"$GITHUB_REPOSITORY\""),
         "publish must identify the repository without relying on a checkout"
+    );
+}
+
+#[test]
+fn pull_request_secret_scan_provides_the_workflow_token() {
+    let workflow = ci_workflow();
+    let secrets = job_block(&workflow, "secrets", None);
+
+    assert!(
+        secrets.contains("GITHUB_TOKEN: ${{ github.token }}"),
+        "Gitleaks requires the workflow token when scanning a pull request"
     );
 }
 
