@@ -12,7 +12,12 @@ path.
 4. Wait for the release workflow to validate the tag, rerun the complete quality
    gate, build all supported platforms, verify checksums, scan unpacked
    archives, create provenance attestations, and publish the GitHub release.
-5. Download one published archive and verify its checksum, provenance, and
+5. Wait for the
+   [`homebrew-tap`](https://github.com/amaljithkuttamath/homebrew-tap)
+   updater to verify the four Unix archives, open its formula pull request, pass
+   macOS and Linux installation checks, and merge. The updater runs hourly and
+   can also be dispatched manually with the exact release tag.
+6. Download one published archive and verify its checksum, provenance, and
    reported CLI version.
 
 The tag must exactly match the package version. The release workflow checks out
